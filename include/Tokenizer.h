@@ -1,3 +1,4 @@
+#pragma once
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -11,7 +12,10 @@ typedef enum {
     EQUAL,
     END,
     COLON,
-    SEMICOLON
+    SEMICOLON,
+    EXIT,
+    OPEN_PAREN,
+    CLOSE_PAREN
 }TokenType;
 
 
@@ -44,6 +48,9 @@ char *TokenToString(TokenType type){
     case COLON: return "COLON";
     case EQUAL: return "EQUAL";
     case SEMICOLON: return "SEMICOLON";
+    case EXIT: return "EXIT";
+    case OPEN_PAREN: return "OPEN_PAREN";
+    case CLOSE_PAREN: return "CLOSE_PAREN";
     default:
         break;
     }
@@ -52,8 +59,9 @@ char *TokenToString(TokenType type){
 
 
 Token* tokenize(char* contents, int *tokenCount){
-    Token* tokens = (Token*)malloc(sizeof(Token) * 256);
+    Token* tokens = (Token*)malloc(sizeof(Token) * strlen(contents));
     char * buffer = (char*)malloc(256);
+
     int buffer_length = 0;
     *tokenCount = 0;
     while (peek(contents, 0) != '\0')
@@ -73,6 +81,10 @@ Token* tokenize(char* contents, int *tokenCount){
             }  
             else if (strncmp(buffer, "int", 3) == 0){
                 tokens[(*tokenCount)++] = (Token){INT, NULL};
+                buffer[0] = '\0';
+            }  
+            else if (strncmp(buffer, "exit", 3) == 0){
+                tokens[(*tokenCount)++] = (Token){EXIT, NULL};
                 buffer[0] = '\0';
             }  
             else {
@@ -103,6 +115,15 @@ Token* tokenize(char* contents, int *tokenCount){
         else if (peek(contents, 0) == ';') {
             consume(contents);
             tokens[(*tokenCount)++] = (Token){SEMICOLON, NULL};
+        }
+        else if (peek(contents, 0) == '('){
+            consume(contents);
+            tokens[(*tokenCount)++] = (Token){OPEN_PAREN, NULL};
+
+        }
+        else if (peek(contents, 0) == ')'){
+            consume(contents);
+            tokens[(*tokenCount)++] = (Token){CLOSE_PAREN, NULL};
         }
         else if (isspace(peek(contents, 0))){
             consume(contents);

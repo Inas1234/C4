@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "./include/Tokenizer.h"
+#include "./include/Parser.h"
 
 char *readFile() {
     FILE *file = fopen("test.my", "rb");
@@ -20,6 +21,7 @@ char *readFile() {
         return NULL;
     }
 
+
     size_t bytesRead = fread(buffer, 1, s, file);
     if (bytesRead < s) {
         perror("Failed to read the entire file");
@@ -36,15 +38,17 @@ char *readFile() {
 
 int main(void){
     char * contents = readFile();
-    printf("%s\n", contents);
     int token_len = 0;
     Token* tokens = tokenize(contents, &token_len);  
+    printf("TOKENS_SIZE: %d\n", token_len);
 
-    for (int i =0; i < token_len; i++){
-        printf("Token: %s Value: %s \n", TokenToString(tokens[i].type), tokens[i].value);
-    }
+
+    NodeProg prog = parseProg(tokens, token_len);
+    printNodeProg(prog);
+    
 
     free(contents);
     free (tokens);
+    free(prog.smts);
     return 0;
 }
