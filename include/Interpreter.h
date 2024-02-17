@@ -8,7 +8,7 @@ void InterpetStatements(NodeStmt stmt){
     case NODE_STMT_EXIT:
         exit(stmt.data.exit_in.code.data.numb.value);
         break;
-    case NODE_STMT_PRINTF:
+    case NODE_STMT_PRINTLN:
         if (stmt.data.printf_in.data.type == NODE_EXPR_NUMB){
             printf("%d", stmt.data.printf_in.data.data.numb.value);
         }

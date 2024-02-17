@@ -16,13 +16,14 @@ typedef enum {
     EXIT,
     OPEN_PAREN,
     CLOSE_PAREN,
-    PRINTF
+    PRINTLN
 }TokenType;
 
 
 typedef struct {
     TokenType type;
     char * value;
+    int line;
 } Token;
 
 static int index = 0;
@@ -52,7 +53,7 @@ char *TokenToString(TokenType type){
     case EXIT: return "EXIT";
     case OPEN_PAREN: return "OPEN_PAREN";
     case CLOSE_PAREN: return "CLOSE_PAREN";
-    case PRINTF: return "PRINTF";
+    case PRINTLN: return "PRINTLN";
     default:
         break;
     }
@@ -64,7 +65,7 @@ Token* tokenize(char* contents, int *tokenCount){
     Token* tokens = (Token*)malloc(sizeof(Token) * strlen(contents));
     char * buffer = (char*)malloc(256);
 
-    int buffer_length = 0;
+    int buffer_length = 0, line=1;
     *tokenCount = 0;
     while (peek(contents, 0) != '\0')
     {
@@ -78,23 +79,23 @@ Token* tokenize(char* contents, int *tokenCount){
             buffer[buffer_length] = '\0';
 
             if (strncmp(buffer, "let", 3) == 0){
-                tokens[(*tokenCount)++] = (Token){LET, NULL};
+                tokens[(*tokenCount)++] = (Token){LET, NULL, line};
                 buffer[0] = '\0';
             }  
             else if (strncmp(buffer, "int", 3) == 0){
-                tokens[(*tokenCount)++] = (Token){INT, NULL};
+                tokens[(*tokenCount)++] = (Token){INT, NULL, line};
                 buffer[0] = '\0';
             }  
             else if (strncmp(buffer, "exit", 3) == 0){
-                tokens[(*tokenCount)++] = (Token){EXIT, NULL};
+                tokens[(*tokenCount)++] = (Token){EXIT, NULL, line};
                 buffer[0] = '\0';
             }
-            else if (strncmp(buffer, "printf", 6) == 0){
-                tokens[(*tokenCount)++] = (Token){PRINTF, NULL};
+            else if (strncmp(buffer, "println", 6) == 0){
+                tokens[(*tokenCount)++] = (Token){PRINTLN, NULL, line};
                 buffer[0] = '\0';
             }
             else {
-                tokens[(*tokenCount)++] = (Token){IDENTIFIER, strdup(buffer)};
+                tokens[(*tokenCount)++] = (Token){IDENTIFIER, strdup(buffer), line};
                 buffer[0] = '\0';
             }
         }
@@ -107,32 +108,37 @@ Token* tokenize(char* contents, int *tokenCount){
             }
             buffer[buffer_length] = '\0';
 
-            tokens[(*tokenCount)++] = (Token){NUMBER, strdup(buffer)};
+            tokens[(*tokenCount)++] = (Token){NUMBER, strdup(buffer), line};
             buffer[0] = '\0';
         }
         else if (peek(contents, 0) == '='){
             consume(contents);
-            tokens[(*tokenCount)++] = (Token){EQUAL, NULL};
+            tokens[(*tokenCount)++] = (Token){EQUAL, NULL, line};
         }
         else if (peek(contents, 0) == ':'){
             consume(contents);
-            tokens[(*tokenCount)++] = (Token){COLON, NULL};
+            tokens[(*tokenCount)++] = (Token){COLON, NULL, line};
         }
         else if (peek(contents, 0) == ';') {
             consume(contents);
-            tokens[(*tokenCount)++] = (Token){SEMICOLON, NULL};
+            tokens[(*tokenCount)++] = (Token){SEMICOLON, NULL, line};
         }
         else if (peek(contents, 0) == '('){
             consume(contents);
-            tokens[(*tokenCount)++] = (Token){OPEN_PAREN, NULL};
+            tokens[(*tokenCount)++] = (Token){OPEN_PAREN, NULL, line};
 
         }
         else if (peek(contents, 0) == ')'){
             consume(contents);
-            tokens[(*tokenCount)++] = (Token){CLOSE_PAREN, NULL};
+            tokens[(*tokenCount)++] = (Token){CLOSE_PAREN, NULL, line};
         }
         else if (isspace(peek(contents, 0))){
             consume(contents);
+        }
+        else if (peek(contents, 0) == '\n') {
+            line++;
+            consume(contents); 
+            continue; 
         }
         else {
             printf("UNKNOWN CHARACTER DETECTED: %c\n", peek(contents, 0));
@@ -142,7 +148,7 @@ Token* tokenize(char* contents, int *tokenCount){
     }
     index = 0;
         
-    tokens[(*tokenCount)] = (Token){END, NULL};
+    tokens[(*tokenCount)] = (Token){END, NULL, line};
     free(buffer);
     return tokens;
     

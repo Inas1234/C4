@@ -1,2 +1,2 @@
-printf(2);
+println(2);
 exit(0);

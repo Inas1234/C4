@@ -33,17 +33,17 @@ typedef struct {
 typedef struct 
 {
     NodeExpr data;
-} NodeStmtPrintf;
+} NodeStmtPrintln;
 
 
 typedef enum {
     NODE_STMT_EXIT,
-    NODE_STMT_PRINTF
+    NODE_STMT_PRINTLN
 } NodeStmtType;
 
 typedef union {
     NodeStmtExit exit_in;
-    NodeStmtPrintf printf_in;
+    NodeStmtPrintln printf_in;
 } NodeStmtData;
 
 typedef struct {
@@ -79,7 +79,7 @@ void printStmt(NodeStmt stmt) {
             printf("Exit Statement: \n");
             printExpr(stmt.data.exit_in.code);
             break;
-        case NODE_STMT_PRINTF:
+        case NODE_STMT_PRINTLN:
             printf("Printf Statement: \n");
             printExpr(stmt.data.printf_in.data);
             break;
@@ -130,20 +130,20 @@ NodeStmt parse_stmt(Token* tokens, int token_length){
     if (peekP(tokens, token_length, 0).type == EXIT){
         consumeP(tokens);
         if (!peekP(tokens, token_length, 0).type == OPEN_PAREN){
-            perror("Missing open paren in exit stmt\n");
+            printf("Missing open paren in exit stmt on line %d\n", peekP(tokens, token_length, 0).line);
         }
         consumeP(tokens);
         NodeExpr expr = parse_expr(tokens, token_length);
 
         if (peekP(tokens, token_length, 0).type != CLOSE_PAREN){
-            perror("Missing close paren after exit stmt expression\n");
+            printf("Missing close paren after exit stmt expression on line %d\n", peekP(tokens, token_length, 0).line);
             exit(1); 
         }
         consumeP(tokens);
 
 
         if (peekP(tokens, token_length, 0).type != SEMICOLON){
-            perror("Missing semi colon after exit\n");
+            printf("Missing semi colon after exit on line %d\n", peekP(tokens, token_length, 0).line);
             exit(1); 
         }
         consumeP(tokens);
@@ -151,28 +151,28 @@ NodeStmt parse_stmt(Token* tokens, int token_length){
         node.type = NODE_STMT_EXIT;
         node.data.exit_in.code = expr;
     }
-    else if (peekP(tokens, token_length, 0).type == PRINTF){
+    else if (peekP(tokens, token_length, 0).type == PRINTLN){
         consumeP(tokens);
         if (!peekP(tokens, token_length, 0).type == OPEN_PAREN){
-            perror("Missing open paren in printf stmt\n");
+            printf("Missing open paren in printf stmt on line %d\n", peekP(tokens, token_length, 0).line);
         }
         consumeP(tokens);
         NodeExpr expr = parse_expr(tokens, token_length);
 
         if (peekP(tokens, token_length, 0).type != CLOSE_PAREN){
-            perror("Missing close paren after printf stmt expression\n");
+            printf("Missing close paren after printf stmt expression on line %d\n", peekP(tokens, token_length, 0).line);
             exit(1); 
         }
         consumeP(tokens);
 
 
         if (peekP(tokens, token_length, 0).type != SEMICOLON){
-            perror("Missing semi colon after printf\n");
+            printf("Missing semi colon after printf on line %d\n", peekP(tokens, token_length, 0).line);
             exit(1); 
         }
         consumeP(tokens);
 
-        node.type = NODE_STMT_PRINTF;
+        node.type = NODE_STMT_PRINTLN;
         node.data.printf_in.data = expr;
     }
     
@@ -183,19 +183,19 @@ NodeProg parseProg(Token* tokens, int token_length) {
     int capacity = 10; 
     NodeStmt* statements = (NodeStmt*)malloc(capacity * sizeof(NodeStmt));
     if (!statements) {
-        perror("Failed to allocate memory for statements\n");
+        printf("Failed to allocate memory for statements\n");
         exit(1);
     }
 
     int length = 0; 
 
     while (indexP < token_length) {
-        if (peekP(tokens, token_length, 0).type == EXIT || peekP(tokens, token_length, 0).type == PRINTF) {
+        if (peekP(tokens, token_length, 0).type == EXIT || peekP(tokens, token_length, 0).type == PRINTLN) {
             if (length >= capacity) {
                 capacity *= 2;
                 statements = (NodeStmt*)realloc(statements, capacity * sizeof(NodeStmt));
                 if (!statements) {
-                    perror("Failed to reallocate memory for statements\n");
+                    printf("Failed to reallocate memory for statements\n");
                     exit(1);
                 }
             }
