@@ -15,7 +15,8 @@ typedef enum {
     SEMICOLON,
     EXIT,
     OPEN_PAREN,
-    CLOSE_PAREN
+    CLOSE_PAREN,
+    PRINTF
 }TokenType;
 
 
@@ -24,7 +25,7 @@ typedef struct {
     char * value;
 } Token;
 
-int index = 0;
+static int index = 0;
 
 char peek(char * contents, int ahead) {
     if (index + ahead >= strlen(contents)){
@@ -51,6 +52,7 @@ char *TokenToString(TokenType type){
     case EXIT: return "EXIT";
     case OPEN_PAREN: return "OPEN_PAREN";
     case CLOSE_PAREN: return "CLOSE_PAREN";
+    case PRINTF: return "PRINTF";
     default:
         break;
     }
@@ -86,7 +88,11 @@ Token* tokenize(char* contents, int *tokenCount){
             else if (strncmp(buffer, "exit", 3) == 0){
                 tokens[(*tokenCount)++] = (Token){EXIT, NULL};
                 buffer[0] = '\0';
-            }  
+            }
+            else if (strncmp(buffer, "printf", 6) == 0){
+                tokens[(*tokenCount)++] = (Token){PRINTF, NULL};
+                buffer[0] = '\0';
+            }
             else {
                 tokens[(*tokenCount)++] = (Token){IDENTIFIER, strdup(buffer)};
                 buffer[0] = '\0';

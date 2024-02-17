@@ -30,12 +30,20 @@ typedef struct {
     NodeExpr code;
 } NodeStmtExit;
 
+typedef struct 
+{
+    NodeExpr data;
+} NodeStmtPrintf;
+
+
 typedef enum {
-    NODE_STMT_EXIT
+    NODE_STMT_EXIT,
+    NODE_STMT_PRINTF
 } NodeStmtType;
 
 typedef union {
     NodeStmtExit exit_in;
+    NodeStmtPrintf printf_in;
 } NodeStmtData;
 
 typedef struct {
@@ -49,7 +57,7 @@ typedef struct {
     int length;
 } NodeProg;
 
-int indexP =0;
+static int indexP =0;
 
 
 void printExpr(NodeExpr expr) {
@@ -71,6 +79,10 @@ void printStmt(NodeStmt stmt) {
             printf("Exit Statement: \n");
             printExpr(stmt.data.exit_in.code);
             break;
+        case NODE_STMT_PRINTF:
+            printf("Printf Statement: \n");
+            printExpr(stmt.data.printf_in.data);
+            break;
         default:
             printf("Unknown statement type\n");
     }
@@ -83,8 +95,6 @@ void printNodeProg(NodeProg prog) {
         printStmt(prog.smts[i]);
     }
 }
-
-
 
 
 Token peekP(Token* tokens, int token_length, int ahead){
@@ -141,6 +151,30 @@ NodeStmt parse_stmt(Token* tokens, int token_length){
         node.type = NODE_STMT_EXIT;
         node.data.exit_in.code = expr;
     }
+    else if (peekP(tokens, token_length, 0).type == PRINTF){
+        consumeP(tokens);
+        if (!peekP(tokens, token_length, 0).type == OPEN_PAREN){
+            perror("Missing open paren in printf stmt\n");
+        }
+        consumeP(tokens);
+        NodeExpr expr = parse_expr(tokens, token_length);
+
+        if (peekP(tokens, token_length, 0).type != CLOSE_PAREN){
+            perror("Missing close paren after printf stmt expression\n");
+            exit(1); 
+        }
+        consumeP(tokens);
+
+
+        if (peekP(tokens, token_length, 0).type != SEMICOLON){
+            perror("Missing semi colon after printf\n");
+            exit(1); 
+        }
+        consumeP(tokens);
+
+        node.type = NODE_STMT_PRINTF;
+        node.data.printf_in.data = expr;
+    }
     
     return node;
 }
@@ -156,7 +190,7 @@ NodeProg parseProg(Token* tokens, int token_length) {
     int length = 0; 
 
     while (indexP < token_length) {
-        if (peekP(tokens, token_length, 0).type == EXIT) {
+        if (peekP(tokens, token_length, 0).type == EXIT || peekP(tokens, token_length, 0).type == PRINTF) {
             if (length >= capacity) {
                 capacity *= 2;
                 statements = (NodeStmt*)realloc(statements, capacity * sizeof(NodeStmt));

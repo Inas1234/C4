@@ -1,1 +1,2 @@
-exit(12);
+printf(2);
+exit(0);
