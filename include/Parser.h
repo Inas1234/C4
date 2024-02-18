@@ -35,15 +35,22 @@ typedef struct
     NodeExpr data;
 } NodeStmtPrintln;
 
+typedef struct{
+    NodeExpr name;
+    NodeExpr *args;
+    int argCount;
+}NodeStmtFuncCall;
 
 typedef enum {
     NODE_STMT_EXIT,
-    NODE_STMT_PRINTLN
+    NODE_STMT_PRINTLN,
+    NODE_STMT_FUNCALL
 } NodeStmtType;
 
 typedef union {
     NodeStmtExit exit_in;
     NodeStmtPrintln printf_in;
+    NodeStmtFuncCall func_call;
 } NodeStmtData;
 
 typedef struct {
@@ -51,10 +58,24 @@ typedef struct {
     NodeStmtData data;
 } NodeStmt;
 
+typedef struct {
+    NodeExpr name;
+    char * type;
+} NodeFuncArguments;
 
 typedef struct {
+    NodeFuncArguments * args;
+    NodeExpr name;
+    NodeStmt* stmts;
+    int arg_count;
+    int stmt_count;
+} NodeFunc;
+
+typedef struct {
+    NodeFunc * functions;
     NodeStmt* smts;
     int length;
+    int fun_length;
 } NodeProg;
 
 static int indexP =0;
@@ -83,16 +104,47 @@ void printStmt(NodeStmt stmt) {
             printf("Printf Statement: \n");
             printExpr(stmt.data.printf_in.data);
             break;
+        case NODE_STMT_FUNCALL:
+            printf("Funcion call Statement: \n");
+            printExpr(stmt.data.func_call.name);
+            printf("Args: \n");
+            for (int i = 0; i < stmt.data.func_call.argCount; i++)
+            {
+                printExpr(stmt.data.func_call.args[i]);
+            }
+            break;
         default:
             printf("Unknown statement type\n");
     }
 }
 
+
 void printNodeProg(NodeProg prog) {
-    printf("Program with %d statements:\n", prog.length);
+    printf("Program with %d statements and %d functions:\n", prog.length, prog.fun_length);
+
+    printf("\nStatements:\n");
     for (int i = 0; i < prog.length; ++i) {
         printf("Statement %d:\n", i + 1);
         printStmt(prog.smts[i]);
+    }
+
+    printf("\nFunctions:\n");
+    for (int i = 0; i < prog.fun_length; ++i) {
+        NodeFunc func = prog.functions[i];
+        printf("Function %d: ", i + 1);
+        printExpr(func.name); // Assuming printExpr can handle printing the function name
+        printf("Arguments (%d):\n", func.arg_count);
+        for (int j = 0; j < func.arg_count; ++j) {
+            printf("\tArgument %d: ", j + 1);
+            printExpr(func.args[j].name);
+            printf("\tType: %s\n", func.args[j].type);
+        }
+        printf("Body (%d statements):\n", func.stmt_count);
+        for (int k = 0; k < func.stmt_count; ++k) {
+            printf("Statement %d:\n", k + 1);
+            printStmt(func.stmts[k]);
+        }
+        printf("\n");
     }
 }
 
@@ -175,37 +227,136 @@ NodeStmt parse_stmt(Token* tokens, int token_length){
         node.type = NODE_STMT_PRINTLN;
         node.data.printf_in.data = expr;
     }
-    
+    else if (peekP(tokens, token_length, 0).type == IDENTIFIER && peekP(tokens, token_length, 1).type == OPEN_PAREN){
+        node.type = NODE_STMT_FUNCALL;
+        node.data.func_call.name = parse_expr(tokens, token_length);
+        consumeP(tokens);
+        int argsCapacity = 4; // Initial capacity
+        node.data.func_call.args = malloc(sizeof(NodeExpr) * argsCapacity);
+        node.data.func_call.argCount = 0;
+
+        while (peekP(tokens, token_length, 0).type != CLOSE_PAREN) {
+            if (node.data.func_call.argCount >= argsCapacity) {
+                argsCapacity *= 2; 
+                node.data.func_call.args = realloc(node.data.func_call.args, sizeof(NodeExpr) * argsCapacity);
+            }
+
+            node.data.func_call.args[node.data.func_call.argCount++] = parse_expr(tokens, token_length);
+
+            if (peekP(tokens, token_length, 0).type == COMMA) {
+                consumeP(tokens); 
+            }
+        }
+        consumeP(tokens);
+
+        consumeP(tokens);
+        
+    }
     return node;
 }
 
+NodeFunc parse_func(Token* tokens, int token_length){
+    NodeFunc func;
+    consumeP(tokens);
+    NodeExpr name = parse_expr(tokens, token_length);
+    func.name = name;
+    
+    consumeP(tokens);
+
+
+    int argsCapacity = 10;
+    NodeFuncArguments* tempArgs = malloc(sizeof(NodeFuncArguments) * argsCapacity);
+    int arg_count = 0;
+    while (peekP(tokens, token_length, 0).type != CLOSE_PAREN) {
+        if (arg_count >= argsCapacity) {
+            argsCapacity *= 2; 
+            tempArgs = realloc(tempArgs, sizeof(NodeFuncArguments) * argsCapacity);
+            if (!tempArgs) {
+                exit(1); 
+            }
+        }
+        NodeFuncArguments arg;
+        arg.name = parse_expr(tokens, token_length); 
+        consumeP(tokens); 
+        arg.type = TokenToString(consumeP(tokens).type); 
+        tempArgs[arg_count++] = arg;
+        if (peekP(tokens, token_length, 0).type == COMMA) {
+            consumeP(tokens); 
+        }
+    }
+    consumeP(tokens);
+
+    func.args = tempArgs;
+    func.arg_count = arg_count;
+
+    NodeStmt* tempStmts = malloc(sizeof(NodeStmt) * 10); 
+    int stmt_count = 0;
+    int stmtsCapacity = 10;
+
+    consumeP(tokens);
+    
+    while (peekP(tokens, token_length, 0).type != CLOSE_CURLY) { 
+        if (stmt_count >= stmtsCapacity) {
+            stmtsCapacity *= 2; 
+            tempStmts = realloc(tempStmts, sizeof(NodeStmt) * stmtsCapacity);
+            if (!tempStmts) {
+                exit(1); 
+            }
+        }
+        NodeStmt stmt = parse_stmt(tokens, token_length);
+        tempStmts[stmt_count++] = stmt;
+    }
+
+    consumeP(tokens);
+
+    func.stmts = tempStmts;
+    func.stmt_count = stmt_count;
+    return func;   
+}
+
 NodeProg parseProg(Token* tokens, int token_length) {
-    int capacity = 10; 
-    NodeStmt* statements = (NodeStmt*)malloc(capacity * sizeof(NodeStmt));
+    int stmtsCapacity = 10;
+    NodeStmt* statements = (NodeStmt*)malloc(stmtsCapacity * sizeof(NodeStmt));
     if (!statements) {
         printf("Failed to allocate memory for statements\n");
         exit(1);
     }
+    int stmtsLength = 0;
 
-    int length = 0; 
+    int funcsCapacity = 10;
+    NodeFunc* functions = (NodeFunc*)malloc(funcsCapacity * sizeof(NodeFunc));
+    if (!functions) {
+        printf("Failed to allocate memory for functions\n");
+        exit(1);
+    }
+    int funcsLength = 0;
 
     while (indexP < token_length) {
-        if (peekP(tokens, token_length, 0).type == EXIT || peekP(tokens, token_length, 0).type == PRINTLN) {
-            if (length >= capacity) {
-                capacity *= 2;
-                statements = (NodeStmt*)realloc(statements, capacity * sizeof(NodeStmt));
+        if (peekP(tokens, token_length, 0).type == EXIT || peekP(tokens, token_length, 0).type == PRINTLN || (peekP(tokens, token_length, 0).type == IDENTIFIER && peekP(tokens, token_length, 1).type == OPEN_PAREN)) {
+            if (stmtsLength >= stmtsCapacity) {
+                stmtsCapacity *= 2;
+                statements = (NodeStmt*)realloc(statements, stmtsCapacity * sizeof(NodeStmt));
                 if (!statements) {
                     printf("Failed to reallocate memory for statements\n");
                     exit(1);
                 }
             }
-
-            statements[length++] = parse_stmt(tokens, token_length);
+            statements[stmtsLength++] = parse_stmt(tokens, token_length);
+        } else if (peekP(tokens, token_length, 0).type == FN) { // Assuming FN is the token type for function definitions
+            if (funcsLength >= funcsCapacity) {
+                funcsCapacity *= 2;
+                functions = (NodeFunc*)realloc(functions, funcsCapacity * sizeof(NodeFunc));
+                if (!functions) {
+                    printf("Failed to reallocate memory for functions\n");
+                    exit(1);
+                }
+            }
+            functions[funcsLength++] = parse_func(tokens, token_length);
         } else {
-            indexP++;
+            indexP++; // Skip unknown tokens or handle them as needed
         }
     }
 
-    NodeProg prog = {statements, length};
+    NodeProg prog = {functions, statements, stmtsLength, funcsLength};
     return prog;
 }

@@ -1,2 +1,14 @@
-println(2);
-exit(0);
+fn som(a: int, b: int){
+    println(a);
+    println(b);
+    exit(0);
+}
+
+
+
+fn main(){
+    som(1, 2);
+    exit(0);
+}
+
+main();

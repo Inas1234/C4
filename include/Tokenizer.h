@@ -16,7 +16,11 @@ typedef enum {
     EXIT,
     OPEN_PAREN,
     CLOSE_PAREN,
-    PRINTLN
+    PRINTLN,
+    FN,
+    COMMA,
+    OPEN_CURLY,
+    CLOSE_CURLY
 }TokenType;
 
 
@@ -94,6 +98,10 @@ Token* tokenize(char* contents, int *tokenCount){
                 tokens[(*tokenCount)++] = (Token){PRINTLN, NULL, line};
                 buffer[0] = '\0';
             }
+            else if (strncmp(buffer, "fn", 2) == 0){
+                tokens[(*tokenCount)++] = (Token){FN, NULL, line};
+                buffer[0] = '\0';
+            }
             else {
                 tokens[(*tokenCount)++] = (Token){IDENTIFIER, strdup(buffer), line};
                 buffer[0] = '\0';
@@ -131,6 +139,19 @@ Token* tokenize(char* contents, int *tokenCount){
         else if (peek(contents, 0) == ')'){
             consume(contents);
             tokens[(*tokenCount)++] = (Token){CLOSE_PAREN, NULL, line};
+        }
+        else if (peek(contents, 0) == '{'){
+            consume(contents);
+            tokens[(*tokenCount)++] = (Token){OPEN_CURLY, NULL, line};
+
+        }
+        else if (peek(contents, 0) == '}'){
+            consume(contents);
+            tokens[(*tokenCount)++] = (Token){CLOSE_CURLY, NULL, line};
+        }
+        else if (peek(contents, 0) == ','){
+            consume(contents);
+            tokens[(*tokenCount)++] = (Token){COMMA, NULL, line};
         }
         else if (isspace(peek(contents, 0))){
             consume(contents);
