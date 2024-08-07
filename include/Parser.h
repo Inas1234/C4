@@ -30,16 +30,19 @@ typedef struct {
     NodeExpr code;
 } NodeStmtExit;
 
-typedef struct 
-{
-    NodeExpr data;
-} NodeStmtPrintln;
 
 typedef struct{
     NodeExpr name;
     NodeExpr *args;
     int argCount;
 }NodeStmtFuncCall;
+
+typedef struct 
+{
+    NodeExpr data;
+    NodeStmtFuncCall *func_call;
+} NodeStmtPrintln;
+
 
 typedef struct {
     NodeExpr value;
@@ -97,37 +100,51 @@ static int indexP =0;
 void printExpr(NodeExpr expr) {
     switch (expr.type) {
         case NODE_EXPR_IDENT:
-            printf("Identifier: %s\n", expr.data.ident.value);
+            printf("-Identifier: %s\n", expr.data.ident.value);
             break;
         case NODE_EXPR_NUMB:
-            printf("Number: %d\n", expr.data.numb.value);
+            printf("-Number: %d\n", expr.data.numb.value);
             break;
         default:
             printf("Unknown expression type\n");
     }
 }
 
+void printFuncCall(NodeStmtFuncCall* func_call) {
+    printf("-Function call: \n");
+    printExpr(func_call->name);
+    printf("-Args: \n");
+    for (int i = 0; i < func_call->argCount; i++)
+    {
+        printExpr(func_call->args[i]);
+    }
+}
+
 void printStmt(NodeStmt stmt) {
     switch (stmt.type) {
         case NODE_STMT_EXIT:
-            printf("Exit Statement: \n");
+            printf("=Exit Statement: \n");
             printExpr(stmt.data.exit_in.code);
             break;
         case NODE_STMT_PRINTLN:
-            printf("Printf Statement: \n");
-            printExpr(stmt.data.printf_in.data);
+            printf("=Printf Statement: \n");
+            if (stmt.data.printf_in.func_call != NULL) {
+                printFuncCall(stmt.data.printf_in.func_call);
+            } else {
+                printExpr(stmt.data.printf_in.data);
+            }
             break;
         case NODE_STMT_FUNCALL:
-            printf("Funcion call Statement: \n");
+            printf("=Funcion call Statement: \n");
             printExpr(stmt.data.func_call.name);
-            printf("Args: \n");
+            printf("-Args: \n");
             for (int i = 0; i < stmt.data.func_call.argCount; i++)
             {
                 printExpr(stmt.data.func_call.args[i]);
             }
             break;
         case NODE_STMT_RETURN:
-            printf("Return Statement: \n");
+            printf("=Return Statement: \n");
             printExpr(stmt.data.return_in.value);
             break;
         default:
@@ -229,14 +246,53 @@ NodeStmt parse_stmt(Token* tokens, int token_length){
             printf("Missing open paren in printf stmt on line %d\n", peekP(tokens, token_length, 0).line);
         }
         consumeP(tokens);
-        NodeExpr expr = parse_expr(tokens, token_length);
 
-        if (peekP(tokens, token_length, 0).type != CLOSE_PAREN){
-            printf("Missing close paren after printf stmt expression on line %d\n", peekP(tokens, token_length, 0).line);
-            exit(1); 
+        if (peekP(tokens, token_length, 0).type == IDENTIFIER && peekP(tokens, token_length, 1).type == OPEN_PAREN){
+            // Handle function call inside print statement
+            node.type = NODE_STMT_PRINTLN;  // The overall statement type is still print
+            node.data.printf_in.func_call = malloc(sizeof(NodeStmtFuncCall));
+            node.data.printf_in.func_call->name = parse_expr(tokens, token_length);  // Parse function name
+            consumeP(tokens);  // Consume '(' after function name
+            
+            int argsCapacity = 4;  // Initial capacity for function arguments
+            node.data.printf_in.func_call->args = malloc(sizeof(NodeExpr) * argsCapacity);
+            node.data.printf_in.func_call->argCount = 0;
+
+            while (peekP(tokens, token_length, 0).type != CLOSE_PAREN) {
+                if (node.data.printf_in.func_call->argCount >= argsCapacity) {
+                    argsCapacity *= 2; 
+                    node.data.printf_in.func_call->args = realloc(node.data.printf_in.func_call->args, sizeof(NodeExpr) * argsCapacity);
+                }
+
+                node.data.printf_in.func_call->args[node.data.printf_in.func_call->argCount++] = parse_expr(tokens, token_length);
+
+                if (peekP(tokens, token_length, 0).type == COMMA) {
+                    consumeP(tokens);  // Consume ',' between arguments
+                }
+            }
+            consumeP(tokens);  // Consume ')'
+            node.data.printf_in.data.type = NODE_EXPR_IDENT; 
+            
+            if (peekP(tokens, token_length, 0).type != CLOSE_PAREN){
+                printf("Missing close paren after printf stmt expression on line %d\n", peekP(tokens, token_length, 0).line);
+                exit(1);
+            }
+            consumeP(tokens);
         }
-        consumeP(tokens);
+        else{
+            node.data.printf_in.func_call = NULL;
+            // Handle regular expression inside print statement
+            NodeExpr expr = parse_expr(tokens, token_length);
 
+            if (peekP(tokens, token_length, 0).type != CLOSE_PAREN){
+                printf("Missing close paren after printf stmt expression on line %d\n", peekP(tokens, token_length, 0).line);
+                exit(1);
+            }
+            consumeP(tokens);  // Consume ')'
+
+            node.type = NODE_STMT_PRINTLN;
+            node.data.printf_in.data = expr;
+        }
 
         if (peekP(tokens, token_length, 0).type != SEMICOLON){
             printf("Missing semi colon after printf on line %d\n", peekP(tokens, token_length, 0).line);
@@ -244,8 +300,6 @@ NodeStmt parse_stmt(Token* tokens, int token_length){
         }
         consumeP(tokens);
 
-        node.type = NODE_STMT_PRINTLN;
-        node.data.printf_in.data = expr;
     }
     else if (peekP(tokens, token_length, 0).type == IDENTIFIER && peekP(tokens, token_length, 1).type == OPEN_PAREN){
         node.type = NODE_STMT_FUNCALL;
@@ -268,7 +322,10 @@ NodeStmt parse_stmt(Token* tokens, int token_length){
             }
         }
         consumeP(tokens);
-
+        if (peekP(tokens, token_length, 0).type != SEMICOLON) {
+            printf("Missing semicolon after function call on line %d\n", peekP(tokens, token_length, 0).line);
+            exit(1);
+        }
         consumeP(tokens);
         
     }

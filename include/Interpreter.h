@@ -45,17 +45,50 @@ NodeExpr EvaluateExpression(NodeExpr expr, Scope* scope) {
     return result;
 }
 
-void InterpetStatements(NodeStmt stmt, Scope* scope){
+void InterpetStatements(NodeStmt stmt, Scope* scope, NodeFunc* current_func){
+
     switch (stmt.type)
     {
     case NODE_STMT_EXIT:
         exit(stmt.data.exit_in.code.data.numb.value);
         break;
     case NODE_STMT_PRINTLN:
-        if (stmt.data.printf_in.data.type == NODE_EXPR_NUMB){
-            printf("%d\n", stmt.data.printf_in.data.data.numb.value);
-        }
-        else if (stmt.data.printf_in.data.type == NODE_EXPR_IDENT){
+        if (stmt.data.printf_in.func_call != NULL) {
+            // Printing the result of a function call
+            NodeFunc* func = findFunction(stmt.data.printf_in.func_call->name.data.ident.value);
+            if (func == NULL) {
+                printf("Function %s not found.\n", stmt.data.printf_in.func_call->name.data.ident.value);
+                break;
+            }
+
+            Scope* functionScope = createScope(scope);
+
+            for (int i = 0; i < stmt.data.printf_in.func_call->argCount && i < func->arg_count; i++) {
+                NodeExpr evaluatedArg = EvaluateExpression(stmt.data.printf_in.func_call->args[i], scope);
+                setVariable(functionScope, func->args[i].name.data.ident.value, evaluatedArg);
+            }
+
+            NodeExpr returnVal;
+            returnVal.type = NODE_EXPR_NUMB;
+
+            for (int i = 0; i < func->stmt_count; i++) {
+                InterpetStatements(func->stmts[i], functionScope, func);
+
+                if (func->stmts[i].type == NODE_STMT_RETURN) {
+                    returnVal = EvaluateExpression(func->stmts[i].data.return_in.value, functionScope);
+                    break;
+                }
+            }
+
+            if (func->returnType == NODE_FUNC_INT) {
+                printf("%d\n", returnVal.data.numb.value);
+            } else if (func->returnType == NODE_FUNC_VOID) {
+                printf("Cannot print void values yet.\n");
+            }
+
+            destroyScope(functionScope);
+        } else if (stmt.data.printf_in.data.type == NODE_EXPR_IDENT) {
+            // Printing an identifier's value
             NodeExpr* value = getVariable(scope, stmt.data.printf_in.data.data.ident.value);
             if (value) {
                 printf("%d\n", value->data.numb.value);
@@ -63,12 +96,17 @@ void InterpetStatements(NodeStmt stmt, Scope* scope){
                 printf("Identifier '%s' not found.\n", stmt.data.printf_in.data.data.ident.value);
                 exit(1);
             }
+        } else if (stmt.data.printf_in.data.type == NODE_EXPR_NUMB) {
+            // Printing a number
+            printf("Printing number: %d\n", stmt.data.printf_in.data.data.numb.value);
+        } else {
+            printf("Unhandled case in PRINTLN.\n");
         }
         break;
     case NODE_STMT_FUNCALL: {
             NodeFunc* func = findFunction(stmt.data.func_call.name.data.ident.value);
             if (func == NULL) {
-                printf("Function not found.\n");
+                printf("Function %s not found.\n", stmt.data.func_call.name.data.ident.value);
                 break;
             }
 
@@ -79,13 +117,31 @@ void InterpetStatements(NodeStmt stmt, Scope* scope){
                 setVariable(functionScope, func->args[i].name.data.ident.value, evaluatedArg);
             }
 
+            NodeExpr returnVal;
+            returnVal.type = NODE_EXPR_NUMB;
+
             for (int i = 0; i < func->stmt_count; i++) {
-                InterpetStatements(func->stmts[i], functionScope);
+                InterpetStatements(func->stmts[i], functionScope, func);
+
+                if (func->stmts[i].type == NODE_STMT_RETURN) {
+                    returnVal = EvaluateExpression(func->stmts[i].data.return_in.value, functionScope);
+                    break;
+                }
+            }
+
+            if (current_func != NULL) {
+                current_func->returnValue = returnVal;
+                printf("Set return value for current function: %d\n", returnVal.data.numb.value);
             }
 
             destroyScope(functionScope);
             break;
         }
+    case NODE_STMT_RETURN:
+        if (current_func != NULL) {
+            current_func->returnValue = EvaluateExpression(stmt.data.return_in.value, scope);
+        }
+        return;
     }
 }
 
@@ -97,7 +153,7 @@ void Interpet(NodeProg prog) {
     }
 
     for (int i = 0; i < prog.length; i++) {
-        InterpetStatements(prog.smts[i], globalScope); 
+        InterpetStatements(prog.smts[i], globalScope, NULL); 
     }
 
     destroyScope(globalScope);
