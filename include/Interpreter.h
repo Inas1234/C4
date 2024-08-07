@@ -32,7 +32,7 @@ NodeExpr EvaluateExpression(NodeExpr expr, Scope* scope) {
                 return *value;
             } else {
                 printf("Identifier '%s' not found.\n", expr.data.ident.value);
-                exit(1); // Or handle the error gracefully
+                exit(1); 
             }
         }
         case NODE_EXPR_NUMB:

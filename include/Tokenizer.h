@@ -8,6 +8,7 @@ typedef enum {
     NUMBER,
     LET,
     INT,
+    VOID,
     IDENTIFIER,
     EQUAL,
     END,
@@ -20,7 +21,9 @@ typedef enum {
     FN,
     COMMA,
     OPEN_CURLY,
-    CLOSE_CURLY
+    CLOSE_CURLY,
+    ARROW,
+    RETURN,
 }TokenType;
 
 
@@ -58,6 +61,8 @@ char *TokenToString(TokenType type){
     case OPEN_PAREN: return "OPEN_PAREN";
     case CLOSE_PAREN: return "CLOSE_PAREN";
     case PRINTLN: return "PRINTLN";
+    case VOID: return "VOID";
+    case RETURN: return "RETURN";
     default:
         break;
     }
@@ -100,6 +105,14 @@ Token* tokenize(char* contents, int *tokenCount){
             }
             else if (strncmp(buffer, "fn", 2) == 0){
                 tokens[(*tokenCount)++] = (Token){FN, NULL, line};
+                buffer[0] = '\0';
+            }
+            else if (strncmp(buffer, "void", 4) == 0){
+                tokens[(*tokenCount)++] = (Token){VOID, NULL, line};
+                buffer[0] = '\0';
+            }
+            else if (strncmp(buffer, "return", 6) == 0){
+                tokens[(*tokenCount)++] = (Token){RETURN, NULL, line};
                 buffer[0] = '\0';
             }
             else {
@@ -152,6 +165,13 @@ Token* tokenize(char* contents, int *tokenCount){
         else if (peek(contents, 0) == ','){
             consume(contents);
             tokens[(*tokenCount)++] = (Token){COMMA, NULL, line};
+        }
+        else if (peek(contents, 0) == '-'){
+            consume(contents);
+            if (peek(contents, 0) == '>'){
+                consume(contents);
+                tokens[(*tokenCount)++] = (Token){ARROW, NULL, line};
+            }
         }
         else if (isspace(peek(contents, 0))){
             consume(contents);

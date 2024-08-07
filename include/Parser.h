@@ -41,16 +41,22 @@ typedef struct{
     int argCount;
 }NodeStmtFuncCall;
 
+typedef struct {
+    NodeExpr value;
+} NodeStmtReturn;
+
 typedef enum {
     NODE_STMT_EXIT,
     NODE_STMT_PRINTLN,
-    NODE_STMT_FUNCALL
+    NODE_STMT_FUNCALL,
+    NODE_STMT_RETURN,
 } NodeStmtType;
 
 typedef union {
     NodeStmtExit exit_in;
     NodeStmtPrintln printf_in;
     NodeStmtFuncCall func_call;
+    NodeStmtReturn return_in;
 } NodeStmtData;
 
 typedef struct {
@@ -63,12 +69,19 @@ typedef struct {
     char * type;
 } NodeFuncArguments;
 
+typedef enum {
+    NODE_FUNC_INT,
+    NODE_FUNC_VOID,
+} ReturnType;
+
 typedef struct {
+    ReturnType returnType;
     NodeFuncArguments * args;
     NodeExpr name;
     NodeStmt* stmts;
     int arg_count;
     int stmt_count;
+    NodeExpr returnValue;
 } NodeFunc;
 
 typedef struct {
@@ -113,6 +126,10 @@ void printStmt(NodeStmt stmt) {
                 printExpr(stmt.data.func_call.args[i]);
             }
             break;
+        case NODE_STMT_RETURN:
+            printf("Return Statement: \n");
+            printExpr(stmt.data.return_in.value);
+            break;
         default:
             printf("Unknown statement type\n");
     }
@@ -132,13 +149,16 @@ void printNodeProg(NodeProg prog) {
     for (int i = 0; i < prog.fun_length; ++i) {
         NodeFunc func = prog.functions[i];
         printf("Function %d: ", i + 1);
-        printExpr(func.name); // Assuming printExpr can handle printing the function name
+        printExpr(func.name); 
         printf("Arguments (%d):\n", func.arg_count);
         for (int j = 0; j < func.arg_count; ++j) {
             printf("\tArgument %d: ", j + 1);
             printExpr(func.args[j].name);
             printf("\tType: %s\n", func.args[j].type);
         }
+
+        printf("Return type: %s\n", func.returnType == NODE_FUNC_INT ? "int" : "void");
+
         printf("Body (%d statements):\n", func.stmt_count);
         for (int k = 0; k < func.stmt_count; ++k) {
             printf("Statement %d:\n", k + 1);
@@ -252,6 +272,17 @@ NodeStmt parse_stmt(Token* tokens, int token_length){
         consumeP(tokens);
         
     }
+    else if (peekP(tokens, token_length, 0).type == RETURN){
+        consumeP(tokens);
+        NodeExpr expr = parse_expr(tokens, token_length);
+        if (peekP(tokens, token_length, 0).type != SEMICOLON){
+            printf("Missing semi colon after return on line %d\n", peekP(tokens, token_length, 0).line);
+            exit(1); 
+        }
+        consumeP(tokens);
+        node.type = NODE_STMT_RETURN;
+        node.data.return_in.value = expr;
+    }
     return node;
 }
 
@@ -293,6 +324,23 @@ NodeFunc parse_func(Token* tokens, int token_length){
     int stmt_count = 0;
     int stmtsCapacity = 10;
 
+    // Consume arrow
+    consumeP(tokens);
+    
+    Token returnToken = consumeP(tokens);
+    switch (returnToken.type)
+    {
+    case INT:
+        func.returnType = NODE_FUNC_INT;
+        break;
+    case VOID:
+        func.returnType = NODE_FUNC_VOID;
+        break;
+    default:
+        printf("Unsupported return type\n");
+        exit(1);
+    }
+
     consumeP(tokens);
     
     while (peekP(tokens, token_length, 0).type != CLOSE_CURLY) { 
@@ -332,7 +380,10 @@ NodeProg parseProg(Token* tokens, int token_length) {
     int funcsLength = 0;
 
     while (indexP < token_length) {
-        if (peekP(tokens, token_length, 0).type == EXIT || peekP(tokens, token_length, 0).type == PRINTLN || (peekP(tokens, token_length, 0).type == IDENTIFIER && peekP(tokens, token_length, 1).type == OPEN_PAREN)) {
+        if (peekP(tokens, token_length, 0).type == EXIT || 
+            peekP(tokens, token_length, 0).type == PRINTLN || 
+            (peekP(tokens, token_length, 0).type == IDENTIFIER && peekP(tokens, token_length, 1).type == OPEN_PAREN) || 
+            peekP(tokens, token_length, 0).type == RETURN) {
             if (stmtsLength >= stmtsCapacity) {
                 stmtsCapacity *= 2;
                 statements = (NodeStmt*)realloc(statements, stmtsCapacity * sizeof(NodeStmt));
@@ -342,7 +393,7 @@ NodeProg parseProg(Token* tokens, int token_length) {
                 }
             }
             statements[stmtsLength++] = parse_stmt(tokens, token_length);
-        } else if (peekP(tokens, token_length, 0).type == FN) { // Assuming FN is the token type for function definitions
+        } else if (peekP(tokens, token_length, 0).type == FN) { 
             if (funcsLength >= funcsCapacity) {
                 funcsCapacity *= 2;
                 functions = (NodeFunc*)realloc(functions, funcsCapacity * sizeof(NodeFunc));
@@ -353,7 +404,7 @@ NodeProg parseProg(Token* tokens, int token_length) {
             }
             functions[funcsLength++] = parse_func(tokens, token_length);
         } else {
-            indexP++; // Skip unknown tokens or handle them as needed
+            indexP++; 
         }
     }
 
