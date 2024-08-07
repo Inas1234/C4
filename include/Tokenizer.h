@@ -33,16 +33,16 @@ typedef struct {
     int line;
 } Token;
 
-static int index = 0;
+static int indexT = 0;
 
 char peek(char * contents, int ahead) {
-    if (index + ahead >= strlen(contents)){
+    if (indexT + ahead >= strlen(contents)){
         return '\0';
     }
-    return contents[index + ahead];    
+    return contents[indexT + ahead];    
 }
 char consume(char *contents){
-    return contents[index++];
+    return contents[indexT++];
 };
 
 
@@ -187,7 +187,7 @@ Token* tokenize(char* contents, int *tokenCount){
         }
 
     }
-    index = 0;
+    indexT = 0;
         
     tokens[(*tokenCount)] = (Token){END, NULL, line};
     free(buffer);

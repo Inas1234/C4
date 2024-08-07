@@ -5,6 +5,7 @@
 #include "./include/Tokenizer.h"
 #include "./include/Parser.h"
 #include "./include/Interpreter.h"
+#include "./include/Compile.h"
 
 char *readFile(char *file_path) {
     FILE *file = fopen(file_path, "rb");
@@ -36,6 +37,38 @@ char *readFile(char *file_path) {
     fclose(file);
     return buffer;
 }
+
+
+char *remove_ext (char* myStr, char extSep, char pathSep) {
+    char *retStr, *lastExt, *lastPath;
+
+
+    if (myStr == NULL) return NULL;
+    if ((retStr = malloc (strlen (myStr) + 1)) == NULL) return NULL;
+
+
+    strcpy (retStr, myStr);
+    lastExt = strrchr (retStr, extSep);
+    lastPath = (pathSep == 0) ? NULL : strrchr (retStr, pathSep);
+
+
+    if (lastExt != NULL) {
+
+        if (lastPath != NULL) {
+            if (lastPath < lastExt) {
+
+                *lastExt = '\0';
+            }
+        } else {
+
+            *lastExt = '\0';
+        }
+    }
+
+
+    return retStr;
+}
+
 
 int main(int argc, char** argv) {
     if (argc < 2) {
@@ -75,12 +108,12 @@ int main(int argc, char** argv) {
 
     int token_len = 0;
     Token* tokens = tokenize(contents, &token_len);
-    printf("TOKENS_SIZE: %d\n", token_len);
 
     NodeProg prog = parseProg(tokens, token_len);
 
     if (debug) {
         printf("Debug mode enabled\n");
+        printf("TOKENS_SIZE: %d\n", token_len);
         printNodeProg(prog);
     }
 
@@ -91,7 +124,21 @@ int main(int argc, char** argv) {
 
     if (compile) {
         printf("Compiling...\n");
-        // Add your compilation logic here
+        FILE *outputFile = fopen("output.c", "w");
+        if (outputFile == NULL) {
+            perror("Failed to open output file");
+            exit(1);
+        }
+        compileProg(prog, outputFile);
+        fclose(outputFile);
+        char command[100];
+        strcpy(command, "gcc output.c -o ");
+        char *output_name = remove_ext(file_path, '.', '/');
+        strcat(command, output_name);
+        system(command);
+        printf("Compilation successful. Output written to %s\n", output_name);
+        remove("output.c");
+        free(output_name);
     }
 
     free(contents);
