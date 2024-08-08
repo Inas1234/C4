@@ -142,6 +142,9 @@ void InterpetStatements(NodeStmt stmt, Scope* scope, NodeFunc* current_func){
             current_func->returnValue = EvaluateExpression(stmt.data.return_in.value, scope);
         }
         return;
+    case NODE_STMT_ASSIGN:
+        setVariable(scope, stmt.data.assign_in.left.data.ident.value, EvaluateExpression(stmt.data.assign_in.right, scope));
+        break;  
     }
 }
 

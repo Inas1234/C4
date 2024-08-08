@@ -37,7 +37,6 @@ void compileStmt(NodeStmt stmt, FILE* outputFile) {
         case NODE_STMT_PRINTLN:
             fprintf(outputFile, "printf(\"%%d\\n\", ");
             if (stmt.data.printf_in.func_call != NULL) {
-                // Handle function call in print statement
                 compileFuncCall(*stmt.data.printf_in.func_call, outputFile);
             } else {
                 compileExpr(stmt.data.printf_in.data, outputFile);
@@ -51,6 +50,12 @@ void compileStmt(NodeStmt stmt, FILE* outputFile) {
         case NODE_STMT_RETURN:
             fprintf(outputFile, "return ");
             compileExpr(stmt.data.return_in.value, outputFile);
+            fprintf(outputFile, ";\n");
+            break;
+        case NODE_STMT_ASSIGN:
+            compileExpr(stmt.data.assign_in.left, outputFile);
+            fprintf(outputFile, " = ");
+            compileExpr(stmt.data.assign_in.right, outputFile);
             fprintf(outputFile, ";\n");
             break;
         default:

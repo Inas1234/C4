@@ -1,6 +1,8 @@
 fn som(a: int, b: int) -> int {
     println(a);
     println(b);
+    a = b;
+
     return a;
 }
 

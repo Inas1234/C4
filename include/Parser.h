@@ -48,11 +48,17 @@ typedef struct {
     NodeExpr value;
 } NodeStmtReturn;
 
+typedef struct {
+    NodeExpr left;
+    NodeExpr right;
+} NodeStmtAssign;
+
 typedef enum {
     NODE_STMT_EXIT,
     NODE_STMT_PRINTLN,
     NODE_STMT_FUNCALL,
     NODE_STMT_RETURN,
+    NODE_STMT_ASSIGN
 } NodeStmtType;
 
 typedef union {
@@ -60,6 +66,7 @@ typedef union {
     NodeStmtPrintln printf_in;
     NodeStmtFuncCall func_call;
     NodeStmtReturn return_in;
+    NodeStmtAssign assign_in;
 } NodeStmtData;
 
 typedef struct {
@@ -146,6 +153,11 @@ void printStmt(NodeStmt stmt) {
         case NODE_STMT_RETURN:
             printf("=Return Statement: \n");
             printExpr(stmt.data.return_in.value);
+            break;
+        case NODE_STMT_ASSIGN:
+            printf("=Assignment Statement: \n");
+            printExpr(stmt.data.assign_in.left);
+            printExpr(stmt.data.assign_in.right);
             break;
         default:
             printf("Unknown statement type\n");
@@ -340,6 +352,17 @@ NodeStmt parse_stmt(Token* tokens, int token_length){
         node.type = NODE_STMT_RETURN;
         node.data.return_in.value = expr;
     }
+    else if (peekP(tokens, token_length, 0).type == IDENTIFIER && peekP(tokens, token_length, 1).type == EQUAL){
+        node.type = NODE_STMT_ASSIGN;
+        node.data.assign_in.left = parse_expr(tokens, token_length);
+        consumeP(tokens);
+        node.data.assign_in.right = parse_expr(tokens, token_length);
+        if (peekP(tokens, token_length, 0).type != SEMICOLON){
+            printf("Missing semi colon after assignment on line %d\n", peekP(tokens, token_length, 0).line);
+            exit(1); 
+        }
+        consumeP(tokens);
+    }
     return node;
 }
 
@@ -440,7 +463,8 @@ NodeProg parseProg(Token* tokens, int token_length) {
         if (peekP(tokens, token_length, 0).type == EXIT || 
             peekP(tokens, token_length, 0).type == PRINTLN || 
             (peekP(tokens, token_length, 0).type == IDENTIFIER && peekP(tokens, token_length, 1).type == OPEN_PAREN) || 
-            peekP(tokens, token_length, 0).type == RETURN) {
+            peekP(tokens, token_length, 0).type == RETURN ||
+            (peekP(tokens, token_length, 0).type == IDENTIFIER && peekP(tokens, token_length, 1).type == EQUAL)) {
             if (stmtsLength >= stmtsCapacity) {
                 stmtsCapacity *= 2;
                 statements = (NodeStmt*)realloc(statements, stmtsCapacity * sizeof(NodeStmt));
