@@ -13,7 +13,8 @@ typedef struct {
 
 typedef enum {
     NODE_EXPR_IDENT,
-    NODE_EXPR_NUMB
+    NODE_EXPR_NUMB,
+    NODE_EXPR_BINARY,
 } NodeExprType;
 
 typedef union {
@@ -25,6 +26,13 @@ typedef struct {
     NodeExprType type;
     NodeExprData data;
 } NodeExpr;
+
+typedef struct {
+    Token token;
+    NodeExpr* left;
+    NodeExpr* right;
+} BinaryExpressionPlus;
+
 
 typedef struct {
     NodeExpr code;
@@ -210,20 +218,115 @@ Token consumeP(Token* tokens){
     return tokens[indexP++];
 }
 
+NodeExpr parse_expr(Token* tokens, int token_length);  
 
-NodeExpr parse_expr(Token* tokens, int token_length){
-    NodeExpr node;
-    if (peekP(tokens, token_length, 0).type == NUMBER){
-        node.type = NODE_EXPR_NUMB;
-        node.data.numb.value = atoi(consumeP(tokens).value);
-        return node;
+
+NodeExpr parse_binary_expr(Token* tokens, int token_length) {
+    NodeExpr left = parse_expr(tokens, token_length);
+
+    Token nextToken = peekP(tokens, token_length, 0);
+
+    while (nextToken.type == PLUS || nextToken.type == MINUS || nextToken.type == MULTIPLY || nextToken.type == DIVIDE) {
+        Token operatorToken = consumeP(tokens);
+
+        NodeExpr right = parse_expr(tokens, token_length);
+
+        NodeExpr newExpr;
+        newExpr.type = NODE_EXPR_IDENT; 
+        BinaryExpressionPlus* binaryExpr = malloc(sizeof(BinaryExpressionPlus));
+        if (!binaryExpr) {
+            printf("Failed to allocate memory for binary expression\n");
+            exit(1);
+        }
+
+        binaryExpr->token = operatorToken;
+        binaryExpr->left = malloc(sizeof(NodeExpr));
+        binaryExpr->right = malloc(sizeof(NodeExpr));
+        if (!binaryExpr->left || !binaryExpr->right) {
+            printf("Failed to allocate memory for binary expression nodes\n");
+            exit(1);
+        }
+        *binaryExpr->left = left;
+        *binaryExpr->right = right;
+
+        newExpr.data.ident.value = (char*)binaryExpr;
+
+        left = newExpr;
+
+        nextToken = peekP(tokens, token_length, 0);
     }
-    else if(peekP(tokens, token_length, 0).type == IDENTIFIER){
-        node.type = NODE_EXPR_IDENT;
-        node.data.ident.value = consumeP(tokens).value;
-        return node;
-    } 
+
+    return left;
 }
+
+
+
+NodeExpr parse_expr(Token* tokens, int token_length) {
+    // Parse the left-hand side (lhs) of the expression
+    NodeExpr left;
+    if (peekP(tokens, token_length, 0).type == NUMBER) {
+        left.type = NODE_EXPR_NUMB;
+        left.data.numb.value = atoi(consumeP(tokens).value);
+    } else if (peekP(tokens, token_length, 0).type == IDENTIFIER) {
+        left.type = NODE_EXPR_IDENT;
+        left.data.ident.value = consumeP(tokens).value;
+    } else {
+        printf("Unexpected token type in expression on line %d\n", peekP(tokens, token_length, 0).line);
+        exit(1);
+    }
+
+    // Check if there's a binary operator following the lhs
+    Token nextToken = peekP(tokens, token_length, 0);
+    while (nextToken.type == PLUS || nextToken.type == MINUS || nextToken.type == MULTIPLY || nextToken.type == DIVIDE) {
+        Token operatorToken = consumeP(tokens);  // Consume the operator
+
+        // Parse the right-hand side (rhs) of the expression
+        NodeExpr right;
+        if (peekP(tokens, token_length, 0).type == NUMBER) {
+            right.type = NODE_EXPR_NUMB;
+            right.data.numb.value = atoi(consumeP(tokens).value);
+        } else if (peekP(tokens, token_length, 0).type == IDENTIFIER) {
+            right.type = NODE_EXPR_IDENT;
+            right.data.ident.value = consumeP(tokens).value;
+        } else {
+            printf("Unexpected token type in expression on line %d\n", peekP(tokens, token_length, 0).line);
+            exit(1);
+        }
+
+        // Create a new node to represent the binary expression
+        NodeExpr newExpr;
+        newExpr.type = NODE_EXPR_BINARY;  // This should represent a binary expression in your AST
+
+        BinaryExpressionPlus* binaryExpr = malloc(sizeof(BinaryExpressionPlus));
+        if (!binaryExpr) {
+            printf("Failed to allocate memory for binary expression\n");
+            exit(1);
+        }
+
+        binaryExpr->token = operatorToken;
+        binaryExpr->left = malloc(sizeof(NodeExpr));
+        binaryExpr->right = malloc(sizeof(NodeExpr));
+        if (!binaryExpr->left || !binaryExpr->right) {
+            printf("Failed to allocate memory for binary expression nodes\n");
+            exit(1);
+        }
+
+        *binaryExpr->left = left;
+        *binaryExpr->right = right;
+
+        newExpr.data.ident.value = (char*)binaryExpr;
+
+        // The new binary expression becomes the left-hand side for the next loop iteration
+        left = newExpr;
+
+        // Check for more operators
+        nextToken = peekP(tokens, token_length, 0);
+    }
+
+    return left;  // Return the fully parsed expression
+}
+
+
 
 
 NodeStmt parse_stmt(Token* tokens, int token_length){

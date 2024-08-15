@@ -25,6 +25,7 @@ NodeFunc* findFunction(char* name) {
 
 NodeExpr EvaluateExpression(NodeExpr expr, Scope* scope) {
     NodeExpr result;
+
     switch (expr.type) {
         case NODE_EXPR_IDENT: {
             NodeExpr* value = getVariable(scope, expr.data.ident.value);
@@ -38,10 +39,46 @@ NodeExpr EvaluateExpression(NodeExpr expr, Scope* scope) {
         case NODE_EXPR_NUMB:
             result = expr;
             break;
+        case NODE_EXPR_BINARY: {
+            // Handle binary expressions stored as IDENT (this should be a custom type in a real scenario)
+            BinaryExpressionPlus* binaryExpr = (BinaryExpressionPlus*)expr.data.ident.value;
+            NodeExpr left = EvaluateExpression(*binaryExpr->left, scope);
+            NodeExpr right = EvaluateExpression(*binaryExpr->right, scope);
+
+            if (left.type != NODE_EXPR_NUMB || right.type != NODE_EXPR_NUMB) {
+                printf("Binary expressions currently only support numeric values.\n");
+                exit(1);
+            }
+
+            result.type = NODE_EXPR_NUMB;
+            switch (binaryExpr->token.type) {
+                case PLUS:
+                    result.data.numb.value = left.data.numb.value + right.data.numb.value;
+                    break;
+                case MINUS:
+                    result.data.numb.value = left.data.numb.value - right.data.numb.value;
+                    break;
+                case MULTIPLY:
+                    result.data.numb.value = left.data.numb.value * right.data.numb.value;
+                    break;
+                case DIVIDE:
+                    if (right.data.numb.value == 0) {
+                        printf("Division by zero error.\n");
+                        exit(1);
+                    }
+                    result.data.numb.value = left.data.numb.value / right.data.numb.value;
+                    break;
+                default:
+                    printf("Unsupported binary operator.\n");
+                    exit(1);
+            }
+            break;
+        }
         default:
             printf("Unsupported expression type for evaluation.\n");
             exit(1);
     }
+
     return result;
 }
 

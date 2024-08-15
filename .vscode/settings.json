@@ -1,5 +1,6 @@
 {
   "files.associations": {
+    "*.embeddedhtml": "html",
     "*.ejs": "html",
     "optional": "cpp",
     "ratio": "cpp",
@@ -10,6 +11,7 @@
     "type_traits": "cpp",
     "utility": "cpp",
     "variant": "cpp",
-    "parser.h": "c"
+    "parser.h": "c",
+    "ios": "c"
   }
 }

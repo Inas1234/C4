@@ -24,6 +24,10 @@ typedef enum {
     CLOSE_CURLY,
     ARROW,
     RETURN,
+    PLUS,
+    MINUS,
+    MULTIPLY,
+    DIVIDE,
 }TokenType;
 
 
@@ -172,6 +176,22 @@ Token* tokenize(char* contents, int *tokenCount){
                 consume(contents);
                 tokens[(*tokenCount)++] = (Token){ARROW, NULL, line};
             }
+        }
+        else if (peek(contents, 0) == '+'){
+            consume(contents);
+            tokens[(*tokenCount)++] = (Token){PLUS, NULL, line};
+        }
+        else if (peek(contents, 0) == '-'){
+            consume(contents);
+            tokens[(*tokenCount)++] = (Token){MINUS, NULL, line};
+        }
+        else if (peek(contents, 0) == '*'){
+            consume(contents);
+            tokens[(*tokenCount)++] = (Token){MULTIPLY, NULL, line};
+        }
+        else if (peek(contents, 0) == '/'){
+            consume(contents);
+            tokens[(*tokenCount)++] = (Token){DIVIDE, NULL, line};
         }
         else if (isspace(peek(contents, 0))){
             consume(contents);
