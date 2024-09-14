@@ -40,7 +40,6 @@ NodeExpr EvaluateExpression(NodeExpr expr, Scope* scope) {
             result = expr;
             break;
         case NODE_EXPR_BINARY: {
-            // Handle binary expressions stored as IDENT (this should be a custom type in a real scenario)
             BinaryExpressionPlus* binaryExpr = (BinaryExpressionPlus*)expr.data.ident.value;
             NodeExpr left = EvaluateExpression(*binaryExpr->left, scope);
             NodeExpr right = EvaluateExpression(*binaryExpr->right, scope);
@@ -68,6 +67,24 @@ NodeExpr EvaluateExpression(NodeExpr expr, Scope* scope) {
                     }
                     result.data.numb.value = left.data.numb.value / right.data.numb.value;
                     break;
+                case LESS_THAN:
+                    result.data.numb.value = left.data.numb.value < right.data.numb.value;
+                    break;
+                case GREATER_THAN:
+                    result.data.numb.value = left.data.numb.value > right.data.numb.value;
+                    break;
+                case LESS_THAN_EQUAL:
+                    result.data.numb.value = left.data.numb.value <= right.data.numb.value;
+                    break;
+                case GREATER_THAN_EQUAL:
+                    result.data.numb.value = left.data.numb.value >= right.data.numb.value;
+                    break;
+                case EQUAL_EQUAL:
+                    result.data.numb.value = left.data.numb.value == right.data.numb.value;
+                    break;
+                case NOT_EQUAL:
+                    result.data.numb.value = left.data.numb.value != right.data.numb.value;
+                    break;
                 default:
                     printf("Unsupported binary operator.\n");
                     exit(1);
@@ -91,7 +108,6 @@ void InterpetStatements(NodeStmt stmt, Scope* scope, NodeFunc* current_func){
         break;
     case NODE_STMT_PRINTLN:
         if (stmt.data.printf_in.func_call != NULL) {
-            // Printing the result of a function call
             NodeFunc* func = findFunction(stmt.data.printf_in.func_call->name.data.ident.value);
             if (func == NULL) {
                 printf("Function %s not found.\n", stmt.data.printf_in.func_call->name.data.ident.value);

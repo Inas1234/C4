@@ -226,7 +226,9 @@ NodeExpr parse_binary_expr(Token* tokens, int token_length) {
 
     Token nextToken = peekP(tokens, token_length, 0);
 
-    while (nextToken.type == PLUS || nextToken.type == MINUS || nextToken.type == MULTIPLY || nextToken.type == DIVIDE) {
+    while (nextToken.type == PLUS || nextToken.type == MINUS || nextToken.type == MULTIPLY || nextToken.type == DIVIDE
+        || nextToken.type == LESS_THAN || nextToken.type == GREATER_THAN || nextToken.type == LESS_THAN_EQUAL || 
+        nextToken.type == GREATER_THAN_EQUAL || nextToken.type == EQUAL_EQUAL || nextToken.type == NOT_EQUAL) {
         Token operatorToken = consumeP(tokens);
 
         NodeExpr right = parse_expr(tokens, token_length);
@@ -275,12 +277,12 @@ NodeExpr parse_expr(Token* tokens, int token_length) {
         exit(1);
     }
 
-    // Check if there's a binary operator following the lhs
     Token nextToken = peekP(tokens, token_length, 0);
-    while (nextToken.type == PLUS || nextToken.type == MINUS || nextToken.type == MULTIPLY || nextToken.type == DIVIDE) {
-        Token operatorToken = consumeP(tokens);  // Consume the operator
+    while (nextToken.type == PLUS || nextToken.type == MINUS || nextToken.type == MULTIPLY || nextToken.type == DIVIDE
+        || nextToken.type == LESS_THAN || nextToken.type == GREATER_THAN || nextToken.type == LESS_THAN_EQUAL ||
+        nextToken.type == GREATER_THAN_EQUAL || nextToken.type == EQUAL_EQUAL || nextToken.type == NOT_EQUAL) {
+        Token operatorToken = consumeP(tokens);  
 
-        // Parse the right-hand side (rhs) of the expression
         NodeExpr right;
         if (peekP(tokens, token_length, 0).type == NUMBER) {
             right.type = NODE_EXPR_NUMB;
@@ -293,9 +295,8 @@ NodeExpr parse_expr(Token* tokens, int token_length) {
             exit(1);
         }
 
-        // Create a new node to represent the binary expression
         NodeExpr newExpr;
-        newExpr.type = NODE_EXPR_BINARY;  // This should represent a binary expression in your AST
+        newExpr.type = NODE_EXPR_BINARY; 
 
         BinaryExpressionPlus* binaryExpr = malloc(sizeof(BinaryExpressionPlus));
         if (!binaryExpr) {
@@ -316,14 +317,13 @@ NodeExpr parse_expr(Token* tokens, int token_length) {
 
         newExpr.data.ident.value = (char*)binaryExpr;
 
-        // The new binary expression becomes the left-hand side for the next loop iteration
         left = newExpr;
 
         // Check for more operators
         nextToken = peekP(tokens, token_length, 0);
     }
 
-    return left;  // Return the fully parsed expression
+    return left;  
 }
 
 

@@ -2,7 +2,7 @@ fn som(a: int, b: int) -> int {
     println(a);
     println(b);
     a = b;
-    b = a * 2;
+    b = a == 1;
     return b;
 }
 

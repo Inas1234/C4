@@ -82,7 +82,6 @@ int main(int argc, char** argv) {
 
     char *file_path = NULL;
 
-    // Parse command-line arguments
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-d") == 0) {
             debug = true;

@@ -9,6 +9,47 @@ void compileExpr(NodeExpr expr, FILE* outputFile) {
         case NODE_EXPR_NUMB:
             fprintf(outputFile, "%d", expr.data.numb.value);
             break;
+        case NODE_EXPR_BINARY: {
+            BinaryExpressionPlus* binaryExpr = (BinaryExpressionPlus*)expr.data.ident.value;
+            compileExpr(*binaryExpr->left, outputFile);
+            switch (binaryExpr->token.type) {
+                case PLUS:
+                    fprintf(outputFile, " + ");
+                    break;
+                case MINUS:
+                    fprintf(outputFile, " - ");
+                    break;
+                case MULTIPLY:
+                    fprintf(outputFile, " * ");
+                    break;
+                case DIVIDE:
+                    fprintf(outputFile, " / ");
+                    break;
+                case LESS_THAN:
+                    fprintf(outputFile, " < ");
+                    break;
+                case GREATER_THAN:
+                    fprintf(outputFile, " > ");
+                    break;
+                case LESS_THAN_EQUAL:   
+                    fprintf(outputFile, " <= ");
+                    break;
+                case GREATER_THAN_EQUAL:    
+                    fprintf(outputFile, " >= ");
+                    break;
+                case EQUAL_EQUAL:
+                    fprintf(outputFile, " == ");
+                    break;
+                case NOT_EQUAL:
+                    fprintf(outputFile, " != ");
+                    break;
+                default:
+                    fprintf(stderr, "Unknown operator\n");
+                    exit(1);
+            }
+            compileExpr(*binaryExpr->right, outputFile);
+            break;
+        }
         default:
             fprintf(stderr, "Unknown expression type\n");
             exit(1);

@@ -28,6 +28,13 @@ typedef enum {
     MINUS,
     MULTIPLY,
     DIVIDE,
+    LESS_THAN,
+    GREATER_THAN,
+    LESS_THAN_EQUAL,
+    GREATER_THAN_EQUAL,
+    EQUAL_EQUAL,
+    NOT_EQUAL
+
 }TokenType;
 
 
@@ -66,7 +73,7 @@ char *TokenToString(TokenType type){
     case CLOSE_PAREN: return "CLOSE_PAREN";
     case PRINTLN: return "PRINTLN";
     case VOID: return "VOID";
-    case RETURN: return "RETURN";
+    case RETURN: return "RETURN";    
     default:
         break;
     }
@@ -138,7 +145,13 @@ Token* tokenize(char* contents, int *tokenCount){
         }
         else if (peek(contents, 0) == '='){
             consume(contents);
-            tokens[(*tokenCount)++] = (Token){EQUAL, NULL, line};
+            if (peek(contents, 0) == '='){
+                consume(contents);
+                tokens[(*tokenCount)++] = (Token){EQUAL_EQUAL, NULL, line};
+            }
+            else{
+                tokens[(*tokenCount)++] = (Token){EQUAL, NULL, line};
+            }
         }
         else if (peek(contents, 0) == ':'){
             consume(contents);
@@ -192,6 +205,35 @@ Token* tokenize(char* contents, int *tokenCount){
         else if (peek(contents, 0) == '/'){
             consume(contents);
             tokens[(*tokenCount)++] = (Token){DIVIDE, NULL, line};
+        }
+        else if (peek(contents, 0) == '<' ){
+            consume(contents);
+            if (peek(contents, 0) == '='){
+                consume(contents);
+                tokens[(*tokenCount)++] = (Token){LESS_THAN_EQUAL, NULL, line};
+            }
+        }
+        else if (peek(contents, 0) == '>' ){
+            consume(contents);
+            if (peek(contents, 0) == '='){
+                consume(contents);
+                tokens[(*tokenCount)++] = (Token){GREATER_THAN_EQUAL, NULL, line};
+            }
+        }
+        else if (peek(contents, 0) == '<'){
+            consume(contents);
+            tokens[(*tokenCount)++] = (Token){LESS_THAN, NULL, line};
+        }
+        else if (peek(contents, 0) == '>'){
+            consume(contents);
+            tokens[(*tokenCount)++] = (Token){GREATER_THAN, NULL, line};
+        }
+        else if (peek(contents, 0) == '!'){
+            consume(contents);
+            if (peek(contents, 0) == '='){
+                consume(contents);
+                tokens[(*tokenCount)++] = (Token){NOT_EQUAL, NULL, line};
+            }
         }
         else if (isspace(peek(contents, 0))){
             consume(contents);
