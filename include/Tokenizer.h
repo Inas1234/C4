@@ -33,8 +33,9 @@ typedef enum {
     LESS_THAN_EQUAL,
     GREATER_THAN_EQUAL,
     EQUAL_EQUAL,
-    NOT_EQUAL
-
+    NOT_EQUAL,
+    IF,
+    ELSE,
 }TokenType;
 
 
@@ -126,6 +127,14 @@ Token* tokenize(char* contents, int *tokenCount){
                 tokens[(*tokenCount)++] = (Token){RETURN, NULL, line};
                 buffer[0] = '\0';
             }
+            else if (strcmp(buffer, "if") == 0){
+                tokens[(*tokenCount)++] = (Token){IF, NULL, line};
+                buffer[0] = '\0';
+            }
+            else if (strcmp(buffer, "else") == 0){
+                tokens[(*tokenCount)++] = (Token){ELSE, NULL, line};
+                buffer[0] = '\0';
+            }
             else {
                 tokens[(*tokenCount)++] = (Token){IDENTIFIER, strdup(buffer), line};
                 buffer[0] = '\0';
@@ -212,6 +221,9 @@ Token* tokenize(char* contents, int *tokenCount){
                 consume(contents);
                 tokens[(*tokenCount)++] = (Token){LESS_THAN_EQUAL, NULL, line};
             }
+            else {
+                tokens[(*tokenCount)++] = (Token){LESS_THAN, NULL, line};
+            }
         }
         else if (peek(contents, 0) == '>' ){
             consume(contents);
@@ -219,15 +231,11 @@ Token* tokenize(char* contents, int *tokenCount){
                 consume(contents);
                 tokens[(*tokenCount)++] = (Token){GREATER_THAN_EQUAL, NULL, line};
             }
+            else {
+                tokens[(*tokenCount)++] = (Token){GREATER_THAN, NULL, line};
+            }
         }
-        else if (peek(contents, 0) == '<'){
-            consume(contents);
-            tokens[(*tokenCount)++] = (Token){LESS_THAN, NULL, line};
-        }
-        else if (peek(contents, 0) == '>'){
-            consume(contents);
-            tokens[(*tokenCount)++] = (Token){GREATER_THAN, NULL, line};
-        }
+
         else if (peek(contents, 0) == '!'){
             consume(contents);
             if (peek(contents, 0) == '='){

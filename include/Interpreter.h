@@ -198,7 +198,19 @@ void InterpetStatements(NodeStmt stmt, Scope* scope, NodeFunc* current_func){
     case NODE_STMT_ASSIGN:
         setVariable(scope, stmt.data.assign_in.left.data.ident.value, EvaluateExpression(stmt.data.assign_in.right, scope));
         break;  
+    case NODE_STMT_IF:
+        if (EvaluateExpression(stmt.data.if_in.condition, scope).data.numb.value) {
+            for (int i = 0; i < stmt.data.if_in.thenCount; i++) {
+                InterpetStatements(stmt.data.if_in.ifStmts[i], scope, current_func);
+            }
+        } else {
+            for (int i = 0; i < stmt.data.if_in.elseCount; i++) {
+                InterpetStatements(stmt.data.if_in.elseStmts[i], scope, current_func);
+            }
+        }
+        break;
     }
+    
 }
 
 void Interpet(NodeProg prog) {

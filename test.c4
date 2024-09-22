@@ -1,10 +1,11 @@
 fn som(a: int, b: int) -> int {
-    println(a);
-    println(b);
-    a = b;
-    b = a == 1;
-    return b;
+    
+    if (a > b) {
+        a = a + 7;
+    }
+
+    return a;
 }
 
 
-println(som(1, 2));
+println(som(2, 1));

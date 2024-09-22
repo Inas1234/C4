@@ -66,8 +66,19 @@ typedef enum {
     NODE_STMT_PRINTLN,
     NODE_STMT_FUNCALL,
     NODE_STMT_RETURN,
-    NODE_STMT_ASSIGN
+    NODE_STMT_ASSIGN,
+    NODE_STMT_IF,
 } NodeStmtType;
+
+typedef struct NodeStmt NodeStmt; 
+
+typedef struct {
+    NodeExpr condition;
+    NodeStmt* ifStmts;
+    int thenCount;
+    NodeStmt* elseStmts;
+    int elseCount;  
+} NodeStmtIF;
 
 typedef union {
     NodeStmtExit exit_in;
@@ -75,12 +86,13 @@ typedef union {
     NodeStmtFuncCall func_call;
     NodeStmtReturn return_in;
     NodeStmtAssign assign_in;
+    NodeStmtIF if_in;
 } NodeStmtData;
 
-typedef struct {
+struct NodeStmt {
     NodeStmtType type;
     NodeStmtData data;
-} NodeStmt;
+};
 
 typedef struct {
     NodeExpr name;
@@ -102,6 +114,7 @@ typedef struct {
     NodeExpr returnValue;
 } NodeFunc;
 
+
 typedef struct {
     NodeFunc * functions;
     NodeStmt* smts;
@@ -119,6 +132,14 @@ void printExpr(NodeExpr expr) {
             break;
         case NODE_EXPR_NUMB:
             printf("-Number: %d\n", expr.data.numb.value);
+            break;
+        case NODE_EXPR_BINARY:
+            printf("-Binary expression: \n");
+            BinaryExpressionPlus* binaryExpr = (BinaryExpressionPlus*)expr.data.ident.value;
+            printf("Left: \n");
+            printExpr(*binaryExpr->left);
+            printf("Right: \n");
+            printExpr(*binaryExpr->right);
             break;
         default:
             printf("Unknown expression type\n");
@@ -167,6 +188,20 @@ void printStmt(NodeStmt stmt) {
             printExpr(stmt.data.assign_in.left);
             printExpr(stmt.data.assign_in.right);
             break;
+        case NODE_STMT_IF:
+            printf("=If Statement: \n");
+            printExpr(stmt.data.if_in.condition);
+            printf("Then:\n");
+            for (int i = 0; i < stmt.data.if_in.thenCount; i++)
+            {
+                printStmt(stmt.data.if_in.ifStmts[i]);
+            }
+            printf("Else:\n");
+            for (int i = 0; i < stmt.data.if_in.elseCount; i++)
+            {
+                printStmt(stmt.data.if_in.elseStmts[i]);
+            }
+            break;
         default:
             printf("Unknown statement type\n");
     }
@@ -178,7 +213,7 @@ void printNodeProg(NodeProg prog) {
 
     printf("\nStatements:\n");
     for (int i = 0; i < prog.length; ++i) {
-        printf("Statement %d:\n", i + 1);
+        printf("\tStatement %d:\n", i + 1);
         printStmt(prog.smts[i]);
     }
 
@@ -465,6 +500,87 @@ NodeStmt parse_stmt(Token* tokens, int token_length){
             exit(1); 
         }
         consumeP(tokens);
+    }
+    else if (peekP(tokens, token_length, 0).type == IF){
+        consumeP(tokens);
+        if (peekP(tokens, token_length, 0).type != OPEN_PAREN){
+            printf("Missing open paren after if on line %d\n", peekP(tokens, token_length, 0).line);
+            exit(1); 
+        }
+        consumeP(tokens);
+        NodeExpr condition = parse_expr(tokens, token_length);
+
+        printExpr(condition);
+
+        if (peekP(tokens, token_length, 0).type != CLOSE_PAREN){
+            printf("Missing close paren after if condition on line %d\n", peekP(tokens, token_length, 0).line);
+            exit(1); 
+        }
+
+        consumeP(tokens);
+
+        if (peekP(tokens, token_length, 0).type != OPEN_CURLY){
+            printf("Missing open curly brace after if condition on line %d\n", peekP(tokens, token_length, 0).line);
+            exit(1); 
+        }
+
+        consumeP(tokens);
+
+        int thenCapacity = 10;
+        NodeStmt* tempThen = (NodeStmt*)malloc(sizeof(NodeStmt) * thenCapacity);
+        int thenCount = 0;
+
+        while (peekP(tokens, token_length, 0).type != CLOSE_CURLY) {
+            if (thenCount >= thenCapacity) {
+                thenCapacity *= 2;
+                tempThen = (NodeStmt*)realloc(tempThen, sizeof(NodeStmt) * thenCapacity);
+                if (!tempThen) {
+                    printf("Failed to reallocate memory for then statements\n");
+                    exit(1);
+                }
+            }
+            tempThen[thenCount++] = parse_stmt(tokens, token_length);
+        }
+
+        consumeP(tokens);
+
+        NodeStmt* elseStmt = NULL;
+        int elseCount = 0;
+
+        if (peekP(tokens, token_length, 0).type == ELSE) {
+            consumeP(tokens);
+            if (peekP(tokens, token_length, 0).type != OPEN_CURLY) {
+                printf("Missing open curly brace after else on line %d\n", peekP(tokens, token_length, 0).line);
+                exit(1);
+            }
+
+            consumeP(tokens);
+
+            int elseCapacity = 10;
+            elseStmt = (NodeStmt*)malloc(sizeof(NodeStmt) * elseCapacity);
+            elseCount = 0;
+
+            while (peekP(tokens, token_length, 0).type == CLOSE_CURLY) {
+                if (elseCount >= elseCapacity) {
+                    elseCapacity *= 2;
+                    elseStmt = (NodeStmt*)realloc(elseStmt, sizeof(NodeStmt) * elseCapacity);
+                    if (!elseStmt) {
+                        printf("Failed to reallocate memory for else statements\n");
+                        exit(1);
+                    }
+                }
+                elseStmt[elseCount++] = parse_stmt(tokens, token_length);
+            }
+            consumeP(tokens);           
+        }
+
+        node.type = NODE_STMT_IF;
+        node.data.if_in.condition = condition;
+        node.data.if_in.ifStmts = tempThen;
+        node.data.if_in.thenCount = thenCount;
+        node.data.if_in.elseStmts = elseStmt;
+        node.data.if_in.elseCount = elseCount;
+        
     }
     return node;
 }
