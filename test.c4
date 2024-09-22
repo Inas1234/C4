@@ -3,9 +3,12 @@ fn som(a: int, b: int) -> int {
     if (a > b) {
         a = a + 7;
     }
+    else {
+        a = a + 3;
+    }
 
     return a;
 }
 
 
-println(som(2, 1));
+println(som(1, 2));

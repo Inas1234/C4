@@ -560,7 +560,7 @@ NodeStmt parse_stmt(Token* tokens, int token_length){
             elseStmt = (NodeStmt*)malloc(sizeof(NodeStmt) * elseCapacity);
             elseCount = 0;
 
-            while (peekP(tokens, token_length, 0).type == CLOSE_CURLY) {
+            while (peekP(tokens, token_length, 0).type != CLOSE_CURLY) {
                 if (elseCount >= elseCapacity) {
                     elseCapacity *= 2;
                     elseStmt = (NodeStmt*)realloc(elseStmt, sizeof(NodeStmt) * elseCapacity);
