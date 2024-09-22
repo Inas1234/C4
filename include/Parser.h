@@ -68,6 +68,7 @@ typedef enum {
     NODE_STMT_RETURN,
     NODE_STMT_ASSIGN,
     NODE_STMT_IF,
+    NODE_STMT_WHILE,
 } NodeStmtType;
 
 typedef struct NodeStmt NodeStmt; 
@@ -80,6 +81,12 @@ typedef struct {
     int elseCount;  
 } NodeStmtIF;
 
+typedef struct {
+    NodeExpr condition;
+    NodeStmt* stmts;
+    int stmt_count;
+} NodeStmtWhile;
+
 typedef union {
     NodeStmtExit exit_in;
     NodeStmtPrintln printf_in;
@@ -87,6 +94,7 @@ typedef union {
     NodeStmtReturn return_in;
     NodeStmtAssign assign_in;
     NodeStmtIF if_in;
+    NodeStmtWhile while_in;
 } NodeStmtData;
 
 struct NodeStmt {
@@ -579,6 +587,56 @@ NodeStmt parse_stmt(Token* tokens, int token_length){
         node.data.if_in.elseStmts = elseStmt;
         node.data.if_in.elseCount = elseCount;
         
+    }
+    else if (peekP(tokens, token_length, 0).type == WHILE){
+        consumeP(tokens);
+        if (peekP(tokens, token_length, 0).type != OPEN_PAREN){
+            printf("Missing open paren after while on line %d\n", peekP(tokens, token_length, 0).line);
+            exit(1); 
+        }
+        consumeP(tokens);
+        NodeExpr condition = parse_expr(tokens, token_length);
+
+        if (peekP(tokens, token_length, 0).type != CLOSE_PAREN){
+            printf("Missing close paren after while condition on line %d\n", peekP(tokens, token_length, 0).line);
+            exit(1); 
+        }
+
+        consumeP(tokens);
+
+        if (peekP(tokens, token_length, 0).type != OPEN_CURLY){
+            printf("Missing open curly brace after while condition on line %d\n", peekP(tokens, token_length, 0).line);
+            exit(1); 
+        }
+
+        consumeP(tokens);
+
+        int stmtCapacity = 10;
+        NodeStmt* tempStmt = (NodeStmt*)malloc(sizeof(NodeStmt) * stmtCapacity);
+        int stmtCount = 0;
+
+        while (peekP(tokens, token_length, 0).type != CLOSE_CURLY) {
+            if (stmtCount >= stmtCapacity) {
+                stmtCapacity *= 2;
+                tempStmt = (NodeStmt*)realloc(tempStmt, sizeof(NodeStmt) * stmtCapacity);
+                if (!tempStmt) {
+                    printf("Failed to reallocate memory for while statements\n");
+                    exit(1);
+                }
+            }
+            tempStmt[stmtCount++] = parse_stmt(tokens, token_length);
+        }
+
+        consumeP(tokens);
+
+        node.type = NODE_STMT_WHILE;
+        node.data.while_in.condition = condition;
+        node.data.while_in.stmts = tempStmt;
+        node.data.while_in.stmt_count = stmtCount;
+    }
+    else{
+        printf("Unexpected token type in statement on line %d\n", peekP(tokens, token_length, 0).line);
+        exit(1);
     }
     return node;
 }

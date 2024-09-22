@@ -36,6 +36,7 @@ typedef enum {
     NOT_EQUAL,
     IF,
     ELSE,
+    WHILE,
 }TokenType;
 
 
@@ -133,6 +134,10 @@ Token* tokenize(char* contents, int *tokenCount){
             }
             else if (strcmp(buffer, "else") == 0){
                 tokens[(*tokenCount)++] = (Token){ELSE, NULL, line};
+                buffer[0] = '\0';
+            }
+            else if (strcmp(buffer, "while") == 0){
+                tokens[(*tokenCount)++] = (Token){WHILE, NULL, line};
                 buffer[0] = '\0';
             }
             else {

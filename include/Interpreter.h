@@ -209,6 +209,13 @@ void InterpetStatements(NodeStmt stmt, Scope* scope, NodeFunc* current_func){
             }
         }
         break;
+    case NODE_STMT_WHILE:
+        while (EvaluateExpression(stmt.data.while_in.condition, scope).data.numb.value) {
+            for (int i = 0; i < stmt.data.while_in.stmt_count; i++) {
+                InterpetStatements(stmt.data.while_in.stmts[i], scope, current_func);
+            }
+        }
+        break;
     }
     
 }

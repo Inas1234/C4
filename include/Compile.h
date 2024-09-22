@@ -112,6 +112,15 @@ void compileStmt(NodeStmt stmt, FILE* outputFile) {
             }
             fprintf(outputFile, "}\n");
             break;
+        case NODE_STMT_WHILE:
+            fprintf(outputFile, "while (");
+            compileExpr(stmt.data.while_in.condition, outputFile);
+            fprintf(outputFile, ") {\n");
+            for (int i = 0; i < stmt.data.while_in.stmt_count; i++) {
+                compileStmt(stmt.data.while_in.stmts[i], outputFile);
+            }
+            fprintf(outputFile, "}\n");
+            break;
         default:
             fprintf(stderr, "Unknown statement type\n");
             exit(1);
