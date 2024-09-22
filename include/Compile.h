@@ -99,6 +99,19 @@ void compileStmt(NodeStmt stmt, FILE* outputFile) {
             compileExpr(stmt.data.assign_in.right, outputFile);
             fprintf(outputFile, ";\n");
             break;
+        case NODE_STMT_IF:
+            fprintf(outputFile, "if (");
+            compileExpr(stmt.data.if_in.condition, outputFile);
+            fprintf(outputFile, ") {\n");
+            for (int i = 0; i < stmt.data.if_in.thenCount; i++) {
+                compileStmt(stmt.data.if_in.ifStmts[i], outputFile);
+            }
+            fprintf(outputFile, "} else {\n");
+            for (int i = 0; i < stmt.data.if_in.elseCount; i++) {
+                compileStmt(stmt.data.if_in.elseStmts[i], outputFile);
+            }
+            fprintf(outputFile, "}\n");
+            break;
         default:
             fprintf(stderr, "Unknown statement type\n");
             exit(1);

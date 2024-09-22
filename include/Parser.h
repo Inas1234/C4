@@ -510,8 +510,6 @@ NodeStmt parse_stmt(Token* tokens, int token_length){
         consumeP(tokens);
         NodeExpr condition = parse_expr(tokens, token_length);
 
-        printExpr(condition);
-
         if (peekP(tokens, token_length, 0).type != CLOSE_PAREN){
             printf("Missing close paren after if condition on line %d\n", peekP(tokens, token_length, 0).line);
             exit(1); 
