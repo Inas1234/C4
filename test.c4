@@ -1,8 +1,9 @@
 fn som(a: int, b: int) -> int {
     
-    while (a < 10) {
-        println(a);
-        a = a + 1;
+    let c: int = 12;
+
+    while (a < b) {
+        a = a + c;
     }
 
     return a;

@@ -121,6 +121,14 @@ void compileStmt(NodeStmt stmt, FILE* outputFile) {
             }
             fprintf(outputFile, "}\n");
             break;
+        case NODE_STMT_DECLARE:
+            fprintf(outputFile, "%s %s", stmt.data.declare_in.type, stmt.data.declare_in.name.data.ident.value);
+            if (stmt.data.declare_in.optionalInit != NULL) {
+                fprintf(outputFile, " = ");
+                compileExpr(*stmt.data.declare_in.optionalInit, outputFile);
+            }
+            fprintf(outputFile, ";\n");
+            break;
         default:
             fprintf(stderr, "Unknown statement type\n");
             exit(1);

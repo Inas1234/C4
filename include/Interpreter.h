@@ -216,6 +216,27 @@ void InterpetStatements(NodeStmt stmt, Scope* scope, NodeFunc* current_func){
             }
         }
         break;
+    case NODE_STMT_DECLARE:
+        if (stmt.data.declare_in.type == NULL) {
+            printf("Variable type not specified.\n");
+            exit(1);
+        }
+        NodeExpr* existing = getVariable(scope, stmt.data.declare_in.name.data.ident.value);
+        if (existing) {
+            printf("Variable '%s' already exists.\n", stmt.data.declare_in.name.data.ident.value);
+            exit(1);
+        }
+        NodeExpr value;
+        if (stmt.data.declare_in.optionalInit != NULL){
+            value = EvaluateExpression(*stmt.data.declare_in.optionalInit, scope);
+        } else {
+            value.type = NODE_EXPR_NUMB;
+            value.data.numb.value = 0;
+        }
+
+        setVariable(scope, stmt.data.declare_in.name.data.ident.value, value);
+        
+        
     }
     
 }

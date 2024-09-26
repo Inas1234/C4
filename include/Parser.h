@@ -61,6 +61,12 @@ typedef struct {
     NodeExpr right;
 } NodeStmtAssign;
 
+typedef struct {
+    NodeExpr name;
+    char * type;
+    NodeExpr * optionalInit;
+} NodeStmtDeclare;
+
 typedef enum {
     NODE_STMT_EXIT,
     NODE_STMT_PRINTLN,
@@ -69,6 +75,7 @@ typedef enum {
     NODE_STMT_ASSIGN,
     NODE_STMT_IF,
     NODE_STMT_WHILE,
+    NODE_STMT_DECLARE,
 } NodeStmtType;
 
 typedef struct NodeStmt NodeStmt; 
@@ -95,6 +102,7 @@ typedef union {
     NodeStmtAssign assign_in;
     NodeStmtIF if_in;
     NodeStmtWhile while_in;
+    NodeStmtDeclare declare_in;
 } NodeStmtData;
 
 struct NodeStmt {
@@ -208,6 +216,23 @@ void printStmt(NodeStmt stmt) {
             for (int i = 0; i < stmt.data.if_in.elseCount; i++)
             {
                 printStmt(stmt.data.if_in.elseStmts[i]);
+            }
+            break;
+        case NODE_STMT_WHILE:
+            printf("=While Statement: \n");
+            printExpr(stmt.data.while_in.condition);
+            for (int i = 0; i < stmt.data.while_in.stmt_count; i++)
+            {
+                printStmt(stmt.data.while_in.stmts[i]);
+            }
+            break;
+        case NODE_STMT_DECLARE:
+            printf("=Declare Statement: \n");
+            printExpr(stmt.data.declare_in.name);
+            printf("Type: %s\n", stmt.data.declare_in.type);
+            if (stmt.data.declare_in.optionalInit != NULL) {
+                printf("Init: \n");
+                printExpr(*stmt.data.declare_in.optionalInit);
             }
             break;
         default:
@@ -633,6 +658,45 @@ NodeStmt parse_stmt(Token* tokens, int token_length){
         node.data.while_in.condition = condition;
         node.data.while_in.stmts = tempStmt;
         node.data.while_in.stmt_count = stmtCount;
+    }
+    else if (peekP(tokens, token_length, 0).type == LET){
+        consumeP(tokens);
+        NodeExpr name = parse_expr(tokens, token_length);
+
+        if (peekP(tokens, token_length, 0).type != COLON){
+            printf("Missing colon after let statement on line %d\n", peekP(tokens, token_length, 0).line);
+            exit(1); 
+        }
+        consumeP(tokens);
+
+        Token typeToken = consumeP(tokens);
+        if (typeToken.type != INT && typeToken.type != VOID){
+            printf("Unsupported type in let statement on line %d\n", typeToken.line);
+            exit(1); 
+        }
+
+        char* type = TokenToString(typeToken.type);
+
+        NodeExpr initExpr;
+        int hasInit = 0;
+
+        if (peekP(tokens, token_length, 0).type == EQUAL) {
+            consumeP(tokens);
+            initExpr = parse_expr(tokens, token_length);
+            hasInit = 1;
+        }
+
+        if (peekP(tokens, token_length, 0).type != SEMICOLON){
+            printf("Missing semi colon after let statement on line %d\n", peekP(tokens, token_length, 0).line);
+            exit(1); 
+        }
+        consumeP(tokens);
+
+        node.type = NODE_STMT_DECLARE;
+        node.data.declare_in.name = name;
+        node.data.declare_in.type = type;
+        node.data.declare_in.optionalInit = hasInit ? &initExpr : NULL;
+
     }
     else{
         printf("Unexpected token type in statement on line %d\n", peekP(tokens, token_length, 0).line);

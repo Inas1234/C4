@@ -36,7 +36,7 @@ typedef enum {
     NOT_EQUAL,
     IF,
     ELSE,
-    WHILE,
+    WHILE,    
 }TokenType;
 
 
@@ -64,7 +64,7 @@ char *TokenToString(TokenType type){
     {
     case NUMBER: return "NUMBER";
     case LET: return "LET";
-    case INT: return "INT";
+    case INT: return "int";
     case IDENTIFIER: return "IDENTIFIER";
     case END: return "END";
     case COLON: return "COLON";
@@ -74,7 +74,7 @@ char *TokenToString(TokenType type){
     case OPEN_PAREN: return "OPEN_PAREN";
     case CLOSE_PAREN: return "CLOSE_PAREN";
     case PRINTLN: return "PRINTLN";
-    case VOID: return "VOID";
+    case VOID: return "void";
     case RETURN: return "RETURN";    
     default:
         break;
